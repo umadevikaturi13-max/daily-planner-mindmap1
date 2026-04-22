@@ -9,7 +9,8 @@ import React, {
 } from "react";
 
 export type Task = { id: string; text: string; done: boolean };
-export type Meal = { id: string; label: string; text: string };
+export type MealKey = "breakfast" | "lunch" | "dinner" | "snacks";
+export type Meal = { id: MealKey; label: string; done: boolean };
 
 export type DayPlan = {
   date: string; // yyyy-mm-dd
@@ -39,10 +40,10 @@ const defaultPlan = (date: string): DayPlan => ({
   tasks: [],
   water: 0,
   meals: [
-    { id: newId(), label: "Breakfast", text: "" },
-    { id: newId(), label: "Lunch", text: "" },
-    { id: newId(), label: "Dinner", text: "" },
-    { id: newId(), label: "Snacks", text: "" },
+    { id: "breakfast", label: "Breakfast", done: false },
+    { id: "lunch", label: "Lunch", done: false },
+    { id: "dinner", label: "Dinner", done: false },
+    { id: "snacks", label: "Snacks", done: false },
   ],
   notes: "",
   wakeTime: "07:00",
@@ -57,7 +58,7 @@ type Ctx = {
   toggleTask: (id: string) => void;
   removeTask: (id: string) => void;
   setWater: (n: number) => void;
-  updateMeal: (id: string, text: string) => void;
+  toggleMeal: (id: MealKey) => void;
   setNotes: (text: string) => void;
   setWakeTime: (t: string) => void;
   setSleepTime: (t: string) => void;
@@ -123,10 +124,10 @@ export function PlannerProvider({ children }: { children: React.ReactNode }) {
     setPlan((p) => ({ ...p, water: Math.max(0, Math.min(8, n)) }));
   }, []);
 
-  const updateMeal = useCallback((id: string, text: string) => {
+  const toggleMeal = useCallback((id: MealKey) => {
     setPlan((p) => ({
       ...p,
-      meals: p.meals.map((m) => (m.id === id ? { ...m, text } : m)),
+      meals: p.meals.map((m) => (m.id === id ? { ...m, done: !m.done } : m)),
     }));
   }, []);
 
@@ -150,7 +151,7 @@ export function PlannerProvider({ children }: { children: React.ReactNode }) {
       toggleTask,
       removeTask,
       setWater,
-      updateMeal,
+      toggleMeal,
       setNotes,
       setWakeTime,
       setSleepTime,
@@ -163,7 +164,7 @@ export function PlannerProvider({ children }: { children: React.ReactNode }) {
       toggleTask,
       removeTask,
       setWater,
-      updateMeal,
+      toggleMeal,
       setNotes,
       setWakeTime,
       setSleepTime,

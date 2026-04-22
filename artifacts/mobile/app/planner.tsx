@@ -1,4 +1,4 @@
-import { Feather } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
 import {
@@ -12,8 +12,15 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { usePlanner } from "@/contexts/PlannerContext";
+import { type MealKey, usePlanner } from "@/contexts/PlannerContext";
 import { useColors } from "@/hooks/useColors";
+
+const MEAL_ICONS: Record<MealKey, keyof typeof MaterialCommunityIcons.glyphMap> = {
+  breakfast: "coffee",
+  lunch: "food",
+  dinner: "food-turkey",
+  snacks: "food-apple",
+};
 
 export default function PlannerScreen() {
   const colors = useColors();
@@ -25,7 +32,7 @@ export default function PlannerScreen() {
     toggleTask,
     removeTask,
     setWater,
-    updateMeal,
+    toggleMeal,
     setNotes,
     setWakeTime,
     setSleepTime,
@@ -90,42 +97,74 @@ export default function PlannerScreen() {
 
       {/* Priorities */}
       <Section title="Top 3 Priorities" icon="star" colors={colors}>
-        {[0, 1, 2].map((i) => (
-          <View
-            key={i}
-            style={[
-              styles.priorityRow,
-              {
-                borderColor: colors.border,
-                borderRadius: colors.radius - 4,
-                backgroundColor: colors.background,
-              },
-            ]}
-          >
+        {[0, 1, 2].map((i) => {
+          const idx = i as 0 | 1 | 2;
+          const value = plan.priorities[idx];
+          const empty = value.trim() === "";
+          return (
             <View
+              key={i}
               style={[
-                styles.priorityNum,
-                { backgroundColor: colors.primary, borderRadius: 14 },
+                styles.priorityRow,
+                {
+                  borderColor: colors.border,
+                  borderRadius: colors.radius - 4,
+                  backgroundColor: colors.background,
+                },
               ]}
             >
-              <Text
-                style={{
-                  color: colors.primaryForeground,
-                  fontFamily: "Inter_700Bold",
-                }}
+              <View
+                style={[
+                  styles.priorityNum,
+                  { backgroundColor: colors.primary, borderRadius: 14 },
+                ]}
               >
-                {i + 1}
-              </Text>
+                <Text
+                  style={{
+                    color: colors.primaryForeground,
+                    fontFamily: "Inter_700Bold",
+                  }}
+                >
+                  {i + 1}
+                </Text>
+              </View>
+              <TextInput
+                value={value}
+                onChangeText={(t) => setPriority(idx, t)}
+                placeholder={`Priority ${i + 1}`}
+                placeholderTextColor={colors.mutedForeground}
+                style={[styles.priorityInput, { color: colors.foreground }]}
+              />
+              <Pressable
+                onPress={() => {
+                  if (empty) return;
+                  setPriority(idx, "");
+                  if (Platform.OS !== "web") {
+                    Haptics.notificationAsync(
+                      Haptics.NotificationFeedbackType.Success,
+                    ).catch(() => {});
+                  }
+                }}
+                disabled={empty}
+                hitSlop={8}
+                style={({ pressed }) => [
+                  styles.priorityDone,
+                  {
+                    borderColor: empty ? colors.border : colors.primary,
+                    backgroundColor: empty ? "transparent" : colors.primary,
+                    opacity: pressed ? 0.85 : 1,
+                  },
+                ]}
+              >
+                <Feather
+                  name="check"
+                  size={16}
+                  color={empty ? colors.mutedForeground : colors.primaryForeground}
+                />
+              </Pressable>
             </View>
-            <TextInput
-              value={plan.priorities[i]}
-              onChangeText={(t) => setPriority(i as 0 | 1 | 2, t)}
-              placeholder={`Priority ${i + 1}`}
-              placeholderTextColor={colors.mutedForeground}
-              style={[styles.priorityInput, { color: colors.foreground }]}
-            />
-          </View>
-        ))}
+          );
+        })}
       </Section>
 
       {/* Tasks */}
@@ -254,34 +293,49 @@ export default function PlannerScreen() {
 
       {/* Meals */}
       <Section title="Meals" icon="coffee" colors={colors}>
-        {plan.meals.map((m) => (
-          <View key={m.id} style={{ marginBottom: 10 }}>
-            <Text
-              style={{
-                color: colors.mutedForeground,
-                fontFamily: "Inter_500Medium",
-                marginBottom: 6,
-              }}
-            >
-              {m.label}
-            </Text>
-            <TextInput
-              value={m.text}
-              onChangeText={(t) => updateMeal(m.id, t)}
-              placeholder={`What did you have for ${m.label.toLowerCase()}?`}
-              placeholderTextColor={colors.mutedForeground}
-              style={[
-                styles.mealInput,
-                {
-                  color: colors.foreground,
-                  borderColor: colors.border,
-                  backgroundColor: colors.background,
-                  borderRadius: colors.radius - 4,
-                },
-              ]}
-            />
-          </View>
-        ))}
+        <Text style={{ color: colors.mutedForeground, marginBottom: 10 }}>
+          {plan.meals.filter((m) => m.done).length} of {plan.meals.length} eaten
+        </Text>
+        <View style={styles.mealRow}>
+          {plan.meals.map((m) => {
+            const icon = MEAL_ICONS[m.id];
+            return (
+              <Pressable
+                key={m.id}
+                onPress={() => {
+                  toggleMeal(m.id);
+                  if (Platform.OS !== "web") {
+                    Haptics.selectionAsync().catch(() => {});
+                  }
+                }}
+                style={[
+                  styles.mealCell,
+                  {
+                    backgroundColor: m.done ? colors.primary : colors.muted,
+                    borderColor: m.done ? colors.primary : colors.border,
+                    borderRadius: colors.radius - 4,
+                  },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name={icon}
+                  size={26}
+                  color={m.done ? colors.primaryForeground : colors.mutedForeground}
+                />
+                <Text
+                  style={{
+                    color: m.done ? colors.primaryForeground : colors.mutedForeground,
+                    fontFamily: "Inter_500Medium",
+                    fontSize: 12,
+                    marginTop: 6,
+                  }}
+                >
+                  {m.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </Section>
 
       {/* Notes */}
@@ -483,12 +537,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  mealInput: {
+  mealRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  mealCell: {
+    flexBasis: "47%",
+    flexGrow: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 18,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: Platform.OS === "ios" ? 12 : 8,
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
+  },
+  priorityDone: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 4,
   },
   notes: {
     borderWidth: 1,

@@ -36,6 +36,7 @@ export default function MindMapScreen() {
           padding: 18,
           paddingBottom: 120 + insets.bottom + webBottom,
         }}
+        showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.intro, { color: colors.mutedForeground }]}>
           Tap a card to edit. Use + to branch a connected idea.
@@ -73,9 +74,22 @@ export default function MindMapScreen() {
             </Text>
           </View>
         ) : (
-          roots.map((node) => (
-            <MindMapNodeView key={node.id} node={node} depth={0} />
-          ))
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: 12,
+              paddingTop: 8,
+              alignItems: "flex-start",
+              gap: 24,
+              minWidth: "100%",
+              justifyContent: "center",
+            }}
+          >
+            {roots.map((node) => (
+              <MindMapNodeView key={node.id} node={node} />
+            ))}
+          </ScrollView>
         )}
       </ScrollView>
 

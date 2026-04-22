@@ -13,9 +13,13 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { type MindMapNode, useMindMap } from "@/contexts/MindMapContext";
 
-type Props = { node: MindMapNode; depth: number };
+type Props = { node: MindMapNode };
 
-export function MindMapNodeView({ node, depth }: Props) {
+const BOX_WIDTH = 140;
+const STEM = 14;
+const ROW_GAP = 12;
+
+export function MindMapNodeView({ node }: Props) {
   const colors = useColors();
   const { addChild, updateText, removeNode } = useMindMap();
   const [editing, setEditing] = useState(node.text === "");
@@ -40,132 +44,166 @@ export function MindMapNodeView({ node, depth }: Props) {
     removeNode(node.id);
   };
 
+  const hasChildren = node.children.length > 0;
+  const childCount = node.children.length;
+
   return (
-    <View style={[styles.wrap, depth > 0 && { marginLeft: 22 }]}>
-      <View style={styles.row}>
-        {depth > 0 ? (
-          <View
-            style={[
-              styles.connector,
-              { borderColor: colors.border, backgroundColor: "transparent" },
-            ]}
+    <View style={styles.subtree}>
+      <Pressable
+        onLongPress={onRemove}
+        onPress={() => setEditing(true)}
+        style={[
+          styles.box,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+            borderRadius: colors.radius,
+          },
+        ]}
+      >
+        {editing ? (
+          <TextInput
+            value={draft}
+            onChangeText={setDraft}
+            onBlur={commit}
+            onSubmitEditing={commit}
+            autoFocus
+            placeholder="Idea…"
+            placeholderTextColor={colors.mutedForeground}
+            style={[styles.input, { color: colors.foreground }]}
+            returnKeyType="done"
+            multiline
           />
-        ) : null}
-        <View
-          style={[
-            styles.box,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              borderRadius: colors.radius,
-            },
-          ]}
-        >
-          {editing ? (
-            <TextInput
-              value={draft}
-              onChangeText={setDraft}
-              onBlur={commit}
-              onSubmitEditing={commit}
-              autoFocus
-              placeholder="Idea…"
-              placeholderTextColor={colors.mutedForeground}
-              style={[styles.input, { color: colors.foreground }]}
-              returnKeyType="done"
-            />
-          ) : (
-            <Pressable onPress={() => setEditing(true)} style={styles.textWrap}>
-              <Text
-                style={[styles.text, { color: colors.foreground }]}
-                numberOfLines={2}
-              >
-                {node.text || "Tap to edit"}
-              </Text>
-            </Pressable>
-          )}
-          <View style={styles.actions}>
-            <Pressable
-              onPress={onAddChild}
-              hitSlop={8}
-              style={({ pressed }) => [
-                styles.iconBtn,
-                {
-                  backgroundColor: colors.primary,
-                  opacity: pressed ? 0.85 : 1,
-                },
-              ]}
-            >
-              <Feather name="plus" size={16} color={colors.primaryForeground} />
-            </Pressable>
-            <Pressable
-              onPress={onRemove}
-              hitSlop={8}
-              style={({ pressed }) => [
-                styles.iconBtn,
-                {
-                  backgroundColor: colors.muted,
-                  opacity: pressed ? 0.85 : 1,
-                },
-              ]}
-            >
-              <Feather name="x" size={16} color={colors.mutedForeground} />
-            </Pressable>
+        ) : (
+          <Text
+            style={[styles.text, { color: colors.foreground }]}
+            numberOfLines={3}
+          >
+            {node.text || "Tap to edit"}
+          </Text>
+        )}
+      </Pressable>
+
+      {/* Stem down to the + button */}
+      <View
+        style={[styles.vLine, { backgroundColor: colors.border, height: STEM }]}
+      />
+      <Pressable
+        onPress={onAddChild}
+        hitSlop={6}
+        style={({ pressed }) => [
+          styles.plusBtn,
+          {
+            borderColor: colors.primary,
+            backgroundColor: colors.background,
+            opacity: pressed ? 0.7 : 1,
+          },
+        ]}
+      >
+        <Feather name="plus" size={14} color={colors.primary} />
+      </Pressable>
+
+      {hasChildren ? (
+        <>
+          <View
+            style={[styles.vLine, { backgroundColor: colors.border, height: STEM }]}
+          />
+          <View style={styles.childrenRow}>
+            {node.children.map((c, i) => {
+              const isFirst = i === 0;
+              const isLast = i === childCount - 1;
+              const single = childCount === 1;
+              return (
+                <View key={c.id} style={styles.childCol}>
+                  {/* Top connector: left half if not first, right half if not last */}
+                  <View style={styles.connectorRow}>
+                    <View
+                      style={{
+                        flex: 1,
+                        height: 2,
+                        backgroundColor:
+                          single || isFirst ? "transparent" : colors.border,
+                      }}
+                    />
+                    <View
+                      style={{
+                        flex: 1,
+                        height: 2,
+                        backgroundColor:
+                          single || isLast ? "transparent" : colors.border,
+                      }}
+                    />
+                  </View>
+                  {/* Vertical drop into the child subtree */}
+                  <View
+                    style={[
+                      styles.vLine,
+                      { backgroundColor: colors.border, height: STEM },
+                    ]}
+                  />
+                  <MindMapNodeView node={c} />
+                </View>
+              );
+            })}
           </View>
-        </View>
-      </View>
-      {node.children.length > 0 ? (
-        <View style={styles.children}>
-          {node.children.map((c) => (
-            <MindMapNodeView key={c.id} node={c} depth={depth + 1} />
-          ))}
-        </View>
+        </>
       ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginTop: 10 },
-  row: { flexDirection: "row", alignItems: "center" },
-  connector: {
-    width: 14,
-    height: 2,
-    borderTopWidth: 2,
-    marginRight: 4,
-  },
+  subtree: { alignItems: "center" },
   box: {
-    flex: 1,
-    borderWidth: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    flexDirection: "row",
+    width: BOX_WIDTH,
+    minHeight: 56,
+    borderWidth: 1.5,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     alignItems: "center",
-    gap: 8,
+    justifyContent: "center",
     shadowColor: "#0a2a22",
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.05,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
-  textWrap: { flex: 1 },
-  text: { fontSize: 15, fontFamily: "Inter_500Medium" },
-  input: {
-    flex: 1,
-    fontSize: 15,
+  text: {
+    fontSize: 14,
     fontFamily: "Inter_500Medium",
+    textAlign: "center",
+  },
+  input: {
+    width: "100%",
+    fontSize: 14,
+    fontFamily: "Inter_500Medium",
+    textAlign: "center",
     padding: 0,
   },
-  actions: { flexDirection: "row", gap: 6 },
-  iconBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  vLine: {
+    width: 2,
+  },
+  plusBtn: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
   },
-  children: {
-    borderLeftWidth: 2,
-    borderLeftColor: "transparent",
-    paddingLeft: 0,
+  childrenRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginTop: 0,
+    gap: ROW_GAP,
+  },
+  childCol: {
+    alignItems: "center",
+    minWidth: BOX_WIDTH,
+  },
+  connectorRow: {
+    flexDirection: "row",
+    width: "100%",
+    height: 2,
   },
 });
