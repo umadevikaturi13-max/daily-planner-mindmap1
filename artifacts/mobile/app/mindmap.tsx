@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React from "react";
+import React, { useState } from "react";
 import {
   Platform,
   Pressable,
@@ -18,13 +18,23 @@ import { useColors } from "@/hooks/useColors";
 export default function MindMapScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { roots, addRoot } = useMindMap();
+  const { roots, addRoot, removeNode } = useMindMap();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const onAddRoot = () => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     }
     addRoot();
+  };
+
+  const onDeleteSelected = () => {
+    if (!selectedId) return;
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    }
+    removeNode(selectedId);
+    setSelectedId(null);
   };
 
   const webBottom = Platform.OS === "web" ? 34 : 0;
@@ -39,7 +49,7 @@ export default function MindMapScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.intro, { color: colors.mutedForeground }]}>
-          Tap a card to edit. Use + to branch a connected idea.
+          Tap a card to select, tap again to edit. Use + to branch a connected idea.
         </Text>
         {roots.length === 0 ? (
           <View
@@ -87,7 +97,12 @@ export default function MindMapScreen() {
             }}
           >
             {roots.map((node) => (
-              <MindMapNodeView key={node.id} node={node} />
+              <MindMapNodeView
+                key={node.id}
+                node={node}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+              />
             ))}
           </ScrollView>
         )}
@@ -103,29 +118,50 @@ export default function MindMapScreen() {
           },
         ]}
       >
-        <Pressable
-          onPress={onAddRoot}
-          style={({ pressed }) => [
-            styles.addBtn,
-            {
-              backgroundColor: colors.primary,
-              borderRadius: colors.radius * 2,
-              opacity: pressed ? 0.9 : 1,
-            },
-          ]}
-        >
-          <Feather name="plus" size={22} color={colors.primaryForeground} />
-          <Text
-            style={{
-              color: colors.primaryForeground,
-              fontFamily: "Inter_600SemiBold",
-              fontSize: 16,
-              marginLeft: 8,
-            }}
+        <View style={styles.footerRow}>
+          <Pressable
+            onPress={onAddRoot}
+            style={({ pressed }) => [
+              styles.addBtn,
+              {
+                backgroundColor: colors.primary,
+                borderRadius: colors.radius * 2,
+                opacity: pressed ? 0.9 : 1,
+              },
+            ]}
           >
-            Add
-          </Text>
-        </Pressable>
+            <Feather name="plus" size={22} color={colors.primaryForeground} />
+            <Text
+              style={{
+                color: colors.primaryForeground,
+                fontFamily: "Inter_600SemiBold",
+                fontSize: 16,
+                marginLeft: 8,
+              }}
+            >
+              Add
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={onDeleteSelected}
+            disabled={!selectedId}
+            style={({ pressed }) => [
+              styles.deleteBtn,
+              {
+                backgroundColor: selectedId ? "#e76f51" : colors.muted,
+                borderColor: selectedId ? "#e76f51" : colors.border,
+                borderRadius: colors.radius * 2,
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}
+          >
+            <Feather
+              name="trash-2"
+              size={22}
+              color={selectedId ? "#ffffff" : colors.mutedForeground}
+            />
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -149,12 +185,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     alignItems: "center",
   },
+  footerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 28,
     paddingVertical: 14,
     minWidth: 180,
+    justifyContent: "center",
+  },
+  deleteBtn: {
+    width: 52,
+    height: 52,
+    borderWidth: 1,
+    alignItems: "center",
     justifyContent: "center",
   },
 });

@@ -12,7 +12,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { type MealKey, usePlanner } from "@/contexts/PlannerContext";
+import {
+  type MealKey,
+  type TaskCategory,
+  usePlanner,
+} from "@/contexts/PlannerContext";
 import { useColors } from "@/hooks/useColors";
 
 const MEAL_ICONS: Record<MealKey, keyof typeof MaterialCommunityIcons.glyphMap> = {
@@ -38,6 +42,7 @@ export default function PlannerScreen() {
     setSleepTime,
   } = usePlanner();
   const [newTask, setNewTask] = useState("");
+  const [taskCategory, setTaskCategory] = useState<TaskCategory>("home");
 
   const dateLabel = new Date(plan.date + "T00:00:00").toLocaleDateString(
     undefined,
@@ -46,7 +51,7 @@ export default function PlannerScreen() {
 
   const submitTask = () => {
     if (!newTask.trim()) return;
-    addTask(newTask);
+    addTask(newTask, taskCategory);
     setNewTask("");
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -169,6 +174,40 @@ export default function PlannerScreen() {
 
       {/* Tasks */}
       <Section title="To-Do" icon="check-circle" colors={colors}>
+        <View style={styles.tabsRow}>
+          {(["home", "work"] as TaskCategory[]).map((cat) => {
+            const active = taskCategory === cat;
+            return (
+              <Pressable
+                key={cat}
+                onPress={() => setTaskCategory(cat)}
+                style={[
+                  styles.tabBtn,
+                  {
+                    backgroundColor: active ? colors.primary : colors.muted,
+                    borderColor: active ? colors.primary : colors.border,
+                    borderRadius: colors.radius - 6,
+                  },
+                ]}
+              >
+                <Feather
+                  name={cat === "home" ? "home" : "briefcase"}
+                  size={14}
+                  color={active ? colors.primaryForeground : colors.mutedForeground}
+                />
+                <Text
+                  style={{
+                    color: active ? colors.primaryForeground : colors.mutedForeground,
+                    fontFamily: "Inter_600SemiBold",
+                    fontSize: 13,
+                  }}
+                >
+                  {cat === "home" ? "Home" : "Work"}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
         <View
           style={[
             styles.addTaskRow,
@@ -183,7 +222,7 @@ export default function PlannerScreen() {
             value={newTask}
             onChangeText={setNewTask}
             onSubmitEditing={submitTask}
-            placeholder="Add a task"
+            placeholder={`Add a ${taskCategory} task`}
             placeholderTextColor={colors.mutedForeground}
             style={[styles.taskInput, { color: colors.foreground }]}
             returnKeyType="done"
@@ -202,57 +241,88 @@ export default function PlannerScreen() {
             <Feather name="plus" size={18} color={colors.primaryForeground} />
           </Pressable>
         </View>
-        {plan.tasks.length === 0 ? (
-          <Text style={{ color: colors.mutedForeground, paddingVertical: 8 }}>
-            No tasks yet. Add the first one above.
-          </Text>
-        ) : (
-          plan.tasks.map((t) => (
-            <View
-              key={t.id}
-              style={[
-                styles.taskRow,
-                {
-                  borderBottomColor: colors.border,
-                },
-              ]}
-            >
-              <Pressable
-                onPress={() => {
-                  toggleTask(t.id);
-                  if (Platform.OS !== "web") {
-                    Haptics.selectionAsync().catch(() => {});
-                  }
-                }}
-                style={[
-                  styles.checkbox,
-                  {
-                    borderColor: t.done ? colors.primary : colors.border,
-                    backgroundColor: t.done ? colors.primary : "transparent",
-                  },
-                ]}
-              >
-                {t.done ? (
-                  <Feather name="check" size={14} color={colors.primaryForeground} />
-                ) : null}
-              </Pressable>
-              <Text
-                style={[
-                  styles.taskText,
-                  {
-                    color: t.done ? colors.mutedForeground : colors.foreground,
-                    textDecorationLine: t.done ? "line-through" : "none",
-                  },
-                ]}
-              >
-                {t.text}
-              </Text>
-              <Pressable onPress={() => removeTask(t.id)} hitSlop={8}>
-                <Feather name="x" size={18} color={colors.mutedForeground} />
-              </Pressable>
+        {(["home", "work"] as TaskCategory[]).map((cat) => {
+          const items = plan.tasks.filter((t) => t.category === cat);
+          return (
+            <View key={cat} style={{ marginTop: 6 }}>
+              <View style={styles.groupHeader}>
+                <Feather
+                  name={cat === "home" ? "home" : "briefcase"}
+                  size={13}
+                  color={colors.primary}
+                />
+                <Text
+                  style={{
+                    color: colors.foreground,
+                    fontFamily: "Inter_600SemiBold",
+                    fontSize: 13,
+                  }}
+                >
+                  {cat === "home" ? "Home" : "Work"}
+                </Text>
+                <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+                  {items.filter((t) => t.done).length}/{items.length}
+                </Text>
+              </View>
+              {items.length === 0 ? (
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    paddingVertical: 6,
+                    fontSize: 13,
+                  }}
+                >
+                  No {cat} tasks yet.
+                </Text>
+              ) : (
+                items.map((t) => (
+                  <View
+                    key={t.id}
+                    style={[styles.taskRow, { borderBottomColor: colors.border }]}
+                  >
+                    <Pressable
+                      onPress={() => {
+                        toggleTask(t.id);
+                        if (Platform.OS !== "web") {
+                          Haptics.selectionAsync().catch(() => {});
+                        }
+                      }}
+                      style={[
+                        styles.checkbox,
+                        {
+                          borderColor: t.done ? colors.primary : colors.border,
+                          backgroundColor: t.done ? colors.primary : "transparent",
+                        },
+                      ]}
+                    >
+                      {t.done ? (
+                        <Feather
+                          name="check"
+                          size={14}
+                          color={colors.primaryForeground}
+                        />
+                      ) : null}
+                    </Pressable>
+                    <Text
+                      style={[
+                        styles.taskText,
+                        {
+                          color: t.done ? colors.mutedForeground : colors.foreground,
+                          textDecorationLine: t.done ? "line-through" : "none",
+                        },
+                      ]}
+                    >
+                      {t.text}
+                    </Text>
+                    <Pressable onPress={() => removeTask(t.id)} hitSlop={8}>
+                      <Feather name="x" size={18} color={colors.mutedForeground} />
+                    </Pressable>
+                  </View>
+                ))
+              )}
             </View>
-          ))
-        )}
+          );
+        })}
       </Section>
 
       {/* Water */}
@@ -489,6 +559,26 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: "Inter_500Medium",
     paddingVertical: Platform.OS === "ios" ? 10 : 6,
+  },
+  tabsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 8,
+  },
+  tabBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+  },
+  groupHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 6,
+    marginBottom: 2,
   },
   addTaskRow: {
     flexDirection: "row",

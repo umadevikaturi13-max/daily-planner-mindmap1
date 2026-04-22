@@ -8,7 +8,13 @@ import React, {
   useState,
 } from "react";
 
-export type Task = { id: string; text: string; done: boolean };
+export type TaskCategory = "home" | "work";
+export type Task = {
+  id: string;
+  text: string;
+  done: boolean;
+  category: TaskCategory;
+};
 export type MealKey = "breakfast" | "lunch" | "dinner" | "snacks";
 export type Meal = { id: MealKey; label: string; done: boolean };
 
@@ -54,7 +60,7 @@ type Ctx = {
   plan: DayPlan;
   ready: boolean;
   setPriority: (index: 0 | 1 | 2, value: string) => void;
-  addTask: (text: string) => void;
+  addTask: (text: string, category: TaskCategory) => void;
   toggleTask: (id: string) => void;
   removeTask: (id: string) => void;
   setWater: (n: number) => void;
@@ -79,7 +85,11 @@ export function PlannerProvider({ children }: { children: React.ReactNode }) {
         const raw = await AsyncStorage.getItem(keyFor(date));
         if (raw) {
           const parsed = JSON.parse(raw) as DayPlan;
-          setPlan({ ...defaultPlan(date), ...parsed });
+          const tasks = (parsed.tasks ?? []).map((t) => ({
+            ...t,
+            category: (t.category ?? "home") as TaskCategory,
+          }));
+          setPlan({ ...defaultPlan(date), ...parsed, tasks });
         }
       } finally {
         setReady(true);
@@ -100,12 +110,12 @@ export function PlannerProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const addTask = useCallback((text: string) => {
+  const addTask = useCallback((text: string, category: TaskCategory) => {
     const t = text.trim();
     if (!t) return;
     setPlan((p) => ({
       ...p,
-      tasks: [...p.tasks, { id: newId(), text: t, done: false }],
+      tasks: [...p.tasks, { id: newId(), text: t, done: false, category }],
     }));
   }, []);
 

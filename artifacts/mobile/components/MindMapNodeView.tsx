@@ -13,17 +13,22 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { type MindMapNode, useMindMap } from "@/contexts/MindMapContext";
 
-type Props = { node: MindMapNode };
+type Props = {
+  node: MindMapNode;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+};
 
 const BOX_WIDTH = 140;
 const STEM = 14;
 const ROW_GAP = 12;
 
-export function MindMapNodeView({ node }: Props) {
+export function MindMapNodeView({ node, selectedId, onSelect }: Props) {
   const colors = useColors();
-  const { addChild, updateText, removeNode } = useMindMap();
+  const { addChild, updateText } = useMindMap();
   const [editing, setEditing] = useState(node.text === "");
   const [draft, setDraft] = useState(node.text);
+  const isSelected = selectedId === node.id;
 
   const commit = () => {
     updateText(node.id, draft.trim());
@@ -37,11 +42,12 @@ export function MindMapNodeView({ node }: Props) {
     addChild(node.id);
   };
 
-  const onRemove = () => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+  const onPressBox = () => {
+    if (isSelected) {
+      setEditing(true);
+    } else {
+      onSelect(node.id);
     }
-    removeNode(node.id);
   };
 
   const hasChildren = node.children.length > 0;
@@ -50,13 +56,13 @@ export function MindMapNodeView({ node }: Props) {
   return (
     <View style={styles.subtree}>
       <Pressable
-        onLongPress={onRemove}
-        onPress={() => setEditing(true)}
+        onPress={onPressBox}
         style={[
           styles.box,
           {
-            backgroundColor: colors.card,
-            borderColor: colors.border,
+            backgroundColor: isSelected ? colors.secondary : colors.card,
+            borderColor: isSelected ? colors.primary : colors.border,
+            borderWidth: isSelected ? 2 : 1.5,
             borderRadius: colors.radius,
           },
         ]}
@@ -141,7 +147,11 @@ export function MindMapNodeView({ node }: Props) {
                       { backgroundColor: colors.border, height: STEM },
                     ]}
                   />
-                  <MindMapNodeView node={c} />
+                  <MindMapNodeView
+                    node={c}
+                    selectedId={selectedId}
+                    onSelect={onSelect}
+                  />
                 </View>
               );
             })}
