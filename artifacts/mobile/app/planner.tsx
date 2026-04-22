@@ -1,0 +1,502 @@
+import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import React, { useState } from "react";
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { usePlanner } from "@/contexts/PlannerContext";
+import { useColors } from "@/hooks/useColors";
+
+export default function PlannerScreen() {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const {
+    plan,
+    setPriority,
+    addTask,
+    toggleTask,
+    removeTask,
+    setWater,
+    updateMeal,
+    setNotes,
+    setWakeTime,
+    setSleepTime,
+  } = usePlanner();
+  const [newTask, setNewTask] = useState("");
+
+  const dateLabel = new Date(plan.date + "T00:00:00").toLocaleDateString(
+    undefined,
+    { weekday: "long", month: "long", day: "numeric" },
+  );
+
+  const submitTask = () => {
+    if (!newTask.trim()) return;
+    addTask(newTask);
+    setNewTask("");
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
+  };
+
+  const onWater = (n: number) => {
+    setWater(n);
+    if (Platform.OS !== "web") {
+      Haptics.selectionAsync().catch(() => {});
+    }
+  };
+
+  const webBottom = Platform.OS === "web" ? 34 : 0;
+
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      contentContainerStyle={{
+        padding: 18,
+        paddingBottom: insets.bottom + 24 + webBottom,
+        gap: 16,
+      }}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View>
+        <Text style={[styles.dateBig, { color: colors.foreground }]}>
+          {dateLabel}
+        </Text>
+        <Text style={{ color: colors.mutedForeground }}>Today's plan</Text>
+      </View>
+
+      {/* Schedule */}
+      <Section title="Schedule" icon="clock" colors={colors}>
+        <View style={styles.row2}>
+          <TimeField
+            label="Wake up"
+            value={plan.wakeTime}
+            onChange={setWakeTime}
+          />
+          <TimeField
+            label="Sleep"
+            value={plan.sleepTime}
+            onChange={setSleepTime}
+          />
+        </View>
+      </Section>
+
+      {/* Priorities */}
+      <Section title="Top 3 Priorities" icon="star" colors={colors}>
+        {[0, 1, 2].map((i) => (
+          <View
+            key={i}
+            style={[
+              styles.priorityRow,
+              {
+                borderColor: colors.border,
+                borderRadius: colors.radius - 4,
+                backgroundColor: colors.background,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.priorityNum,
+                { backgroundColor: colors.primary, borderRadius: 14 },
+              ]}
+            >
+              <Text
+                style={{
+                  color: colors.primaryForeground,
+                  fontFamily: "Inter_700Bold",
+                }}
+              >
+                {i + 1}
+              </Text>
+            </View>
+            <TextInput
+              value={plan.priorities[i]}
+              onChangeText={(t) => setPriority(i as 0 | 1 | 2, t)}
+              placeholder={`Priority ${i + 1}`}
+              placeholderTextColor={colors.mutedForeground}
+              style={[styles.priorityInput, { color: colors.foreground }]}
+            />
+          </View>
+        ))}
+      </Section>
+
+      {/* Tasks */}
+      <Section title="To-Do" icon="check-circle" colors={colors}>
+        <View
+          style={[
+            styles.addTaskRow,
+            {
+              borderColor: colors.border,
+              borderRadius: colors.radius - 4,
+              backgroundColor: colors.background,
+            },
+          ]}
+        >
+          <TextInput
+            value={newTask}
+            onChangeText={setNewTask}
+            onSubmitEditing={submitTask}
+            placeholder="Add a task"
+            placeholderTextColor={colors.mutedForeground}
+            style={[styles.taskInput, { color: colors.foreground }]}
+            returnKeyType="done"
+          />
+          <Pressable
+            onPress={submitTask}
+            style={({ pressed }) => [
+              styles.addBtnSm,
+              {
+                backgroundColor: colors.primary,
+                borderRadius: colors.radius - 6,
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}
+          >
+            <Feather name="plus" size={18} color={colors.primaryForeground} />
+          </Pressable>
+        </View>
+        {plan.tasks.length === 0 ? (
+          <Text style={{ color: colors.mutedForeground, paddingVertical: 8 }}>
+            No tasks yet. Add the first one above.
+          </Text>
+        ) : (
+          plan.tasks.map((t) => (
+            <View
+              key={t.id}
+              style={[
+                styles.taskRow,
+                {
+                  borderBottomColor: colors.border,
+                },
+              ]}
+            >
+              <Pressable
+                onPress={() => {
+                  toggleTask(t.id);
+                  if (Platform.OS !== "web") {
+                    Haptics.selectionAsync().catch(() => {});
+                  }
+                }}
+                style={[
+                  styles.checkbox,
+                  {
+                    borderColor: t.done ? colors.primary : colors.border,
+                    backgroundColor: t.done ? colors.primary : "transparent",
+                  },
+                ]}
+              >
+                {t.done ? (
+                  <Feather name="check" size={14} color={colors.primaryForeground} />
+                ) : null}
+              </Pressable>
+              <Text
+                style={[
+                  styles.taskText,
+                  {
+                    color: t.done ? colors.mutedForeground : colors.foreground,
+                    textDecorationLine: t.done ? "line-through" : "none",
+                  },
+                ]}
+              >
+                {t.text}
+              </Text>
+              <Pressable onPress={() => removeTask(t.id)} hitSlop={8}>
+                <Feather name="x" size={18} color={colors.mutedForeground} />
+              </Pressable>
+            </View>
+          ))
+        )}
+      </Section>
+
+      {/* Water */}
+      <Section title="Water" icon="droplet" colors={colors}>
+        <Text
+          style={{
+            color: colors.mutedForeground,
+            marginBottom: 10,
+          }}
+        >
+          {plan.water} of 8 glasses
+        </Text>
+        <View style={styles.waterRow}>
+          {Array.from({ length: 8 }).map((_, i) => {
+            const filled = i < plan.water;
+            return (
+              <Pressable
+                key={i}
+                onPress={() => onWater(i + 1 === plan.water ? i : i + 1)}
+                style={[
+                  styles.waterCup,
+                  {
+                    backgroundColor: filled ? colors.primary : colors.muted,
+                    borderColor: filled ? colors.primary : colors.border,
+                  },
+                ]}
+              >
+                <Feather
+                  name="droplet"
+                  size={16}
+                  color={filled ? colors.primaryForeground : colors.mutedForeground}
+                />
+              </Pressable>
+            );
+          })}
+        </View>
+      </Section>
+
+      {/* Meals */}
+      <Section title="Meals" icon="coffee" colors={colors}>
+        {plan.meals.map((m) => (
+          <View key={m.id} style={{ marginBottom: 10 }}>
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontFamily: "Inter_500Medium",
+                marginBottom: 6,
+              }}
+            >
+              {m.label}
+            </Text>
+            <TextInput
+              value={m.text}
+              onChangeText={(t) => updateMeal(m.id, t)}
+              placeholder={`What did you have for ${m.label.toLowerCase()}?`}
+              placeholderTextColor={colors.mutedForeground}
+              style={[
+                styles.mealInput,
+                {
+                  color: colors.foreground,
+                  borderColor: colors.border,
+                  backgroundColor: colors.background,
+                  borderRadius: colors.radius - 4,
+                },
+              ]}
+            />
+          </View>
+        ))}
+      </Section>
+
+      {/* Notes */}
+      <Section title="Notes" icon="edit-3" colors={colors}>
+        <TextInput
+          value={plan.notes}
+          onChangeText={setNotes}
+          multiline
+          placeholder="Reflections, gratitude, ideas…"
+          placeholderTextColor={colors.mutedForeground}
+          style={[
+            styles.notes,
+            {
+              color: colors.foreground,
+              borderColor: colors.border,
+              backgroundColor: colors.background,
+              borderRadius: colors.radius - 4,
+            },
+          ]}
+        />
+      </Section>
+    </ScrollView>
+  );
+}
+
+function Section({
+  title,
+  icon,
+  children,
+  colors,
+}: {
+  title: string;
+  icon: keyof typeof Feather.glyphMap;
+  children: React.ReactNode;
+  colors: ReturnType<typeof useColors>;
+}) {
+  return (
+    <View
+      style={[
+        styles.section,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          borderRadius: colors.radius,
+        },
+      ]}
+    >
+      <View style={styles.sectionHeader}>
+        <View
+          style={[
+            styles.sectionIcon,
+            { backgroundColor: colors.secondary, borderRadius: 10 },
+          ]}
+        >
+          <Feather name={icon} size={16} color={colors.primary} />
+        </View>
+        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+          {title}
+        </Text>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function TimeField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (s: string) => void;
+}) {
+  const colors = useColors();
+  return (
+    <View style={{ flex: 1 }}>
+      <Text
+        style={{
+          color: colors.mutedForeground,
+          fontFamily: "Inter_500Medium",
+          marginBottom: 6,
+        }}
+      >
+        {label}
+      </Text>
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        placeholder="HH:MM"
+        placeholderTextColor={colors.mutedForeground}
+        style={[
+          styles.timeInput,
+          {
+            color: colors.foreground,
+            borderColor: colors.border,
+            backgroundColor: colors.background,
+            borderRadius: colors.radius - 4,
+          },
+        ]}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  dateBig: { fontFamily: "Inter_700Bold", fontSize: 22, marginBottom: 2 },
+  section: {
+    borderWidth: 1,
+    padding: 16,
+    gap: 8,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 8,
+  },
+  sectionIcon: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionTitle: { fontFamily: "Inter_600SemiBold", fontSize: 16 },
+  row2: { flexDirection: "row", gap: 12 },
+  timeInput: {
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === "ios" ? 12 : 8,
+    fontSize: 16,
+    fontFamily: "Inter_500Medium",
+  },
+  priorityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  priorityNum: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  priorityInput: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: "Inter_500Medium",
+    paddingVertical: Platform.OS === "ios" ? 10 : 6,
+  },
+  addTaskRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingLeft: 12,
+    paddingRight: 6,
+    paddingVertical: 6,
+    borderWidth: 1,
+    marginBottom: 6,
+  },
+  taskInput: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    paddingVertical: Platform.OS === "ios" ? 10 : 6,
+  },
+  addBtnSm: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  taskRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  taskText: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular" },
+  waterRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  waterCup: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mealInput: {
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === "ios" ? 12 : 8,
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+  },
+  notes: {
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    minHeight: 100,
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    textAlignVertical: "top",
+  },
+});

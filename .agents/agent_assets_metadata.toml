@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "xzqWEWvIYf-YeHa435Bb7"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "planner app icon"
