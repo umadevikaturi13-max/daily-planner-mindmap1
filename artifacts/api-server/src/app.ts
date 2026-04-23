@@ -2,11 +2,7 @@ import express, { type Express, type Request, type Response } from "express";
 import cors from "cors";
 import { pinoHttp } from "pino-http"; 
 import router from "./routes/index.js"; 
-
 /* 
-import express, { type Express, type Request, type Response } from "express";
-import cors from "cors";
-import { pinoHttp } from "pino-http"; // Changed to { pinoHttp }
 import router from "./routes";
 */
 import { logger } from "./lib/logger.js";
