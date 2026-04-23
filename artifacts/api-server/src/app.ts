@@ -9,7 +9,7 @@ import cors from "cors";
 import { pinoHttp } from "pino-http"; // Changed to { pinoHttp }
 import router from "./routes";
 */
-import { logger } from "./lib/logger/index.js";
+import { logger } from "./lib/logger.js";
 
 const app: Express = express();
 
