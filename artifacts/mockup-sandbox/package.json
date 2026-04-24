@@ -13,7 +13,8 @@
     "framer-motion": "latest",
     "clsx": "latest",
     "tailwind-merge": "latest",
-    "tw-animate-css": "latest"
+    "tw-animate-css": "latest",
+    "@tailwindcss/vite": "^4.0.0"
   },
   "devDependencies": {
     "vite": "latest",
