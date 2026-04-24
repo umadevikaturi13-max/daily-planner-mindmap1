@@ -1,8 +1,9 @@
+<!--
 <!DOCTYPE html>
 <!--
   This file is the entry for ALL routes, including /preview/* canvas iframes.
   Fonts are loaded here as non-blocking <link> tags (not CSS @import, which is render-blocking).
--->
+->
 <html lang="en" style="height: 100%">
   <head>
     <meta charset="UTF-8" />
@@ -17,7 +18,7 @@
 
     <title>Mockup Canvas</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
-    <!-- Non-blocking font bundle: renders with fallback fonts immediately, swaps in when loaded -->
+    <!-- Non-blocking font bundle: renders with fallback fonts immediately, swaps in when loaded ->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" media="print" onload="this.media='all'"
@@ -26,6 +27,22 @@
   </head>
   <body style="height: 100%; margin: 0">
     <div id="root" style="height: 100%"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html> 
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Planner & Mindmap</title>
+    <!-- This script makes all Tailwind classes work instantly -->
+    <script src="https://tailwindcss.com"></script>
+  </head>
+  <body>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
