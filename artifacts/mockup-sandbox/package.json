@@ -23,6 +23,7 @@
     "postcss": "latest",
     "tailwindcss": "latest",
     "typescript": "latest",
-    "esbuild": "latest"
+    "esbuild": "latest",
+    "vite-plugin-pwa": "latest"
   }
 }
