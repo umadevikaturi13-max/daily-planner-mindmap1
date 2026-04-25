@@ -10,6 +10,7 @@ interface Meal { id: MealKey; label: string; done: boolean; }
 
 export default function App() {
   const [view, setView] = useState<ViewState>(() => localStorage.getItem('isLoggedIn') === 'true' ? 'home' : 'auth');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signup');
   const [userName, setUserName] = useState(() => localStorage.getItem('userName') || "");
   const [newTaskText, setNewTaskText] = useState("");
   const [currentCat, setCurrentCat] = useState<TaskCategory>('home');
@@ -40,20 +41,41 @@ export default function App() {
 
   const updatePlanner = (updates: any) => setData({ ...data, planner: { ...data.planner, ...updates } });
 
-  // --- Water Toggle Fix ---
+  // --- Logic Helpers ---
   const handleWaterClick = (index: number) => {
-    const targetValue = index + 1;
-    updatePlanner({ water: data.planner.water === targetValue ? index : targetValue });
+    const target = index + 1;
+    updatePlanner({ water: data.planner.water === target ? index : target });
   };
 
-  const addTask = () => {
-    if (!newTaskText.trim()) return;
-    const nt = { id: Date.now().toString(), text: newTaskText, category: currentCat, done: false };
-    updatePlanner({ tasks: [...data.planner.tasks, nt] });
-    setNewTaskText("");
+  const addMindNode = (parentId: string | null = null) => {
+    const newNode = { id: Date.now().toString(), text: 'New idea', children: [] };
+    if (!parentId) setData({ ...data, mindmap: { roots: [...data.mindmap.roots, newNode] } });
+    else {
+      const addToTree = (nodes: MindNode[]): MindNode[] => nodes.map(n => 
+        n.id === parentId ? { ...n, children: [...n.children, newNode] } : { ...n, children: addToTree(n.children) }
+      );
+      setData({ ...data, mindmap: { roots: addToTree(data.mindmap.roots) } });
+    }
   };
 
-  // --- Auth & Home Views ---
+  const renderMindTree = (nodes: MindNode[]) => (
+    <div style={st.treeRow}>
+      {nodes.map(node => (
+        <div key={node.id} style={st.nodeColumn}>
+          <div style={{...st.mindCard, border: selectedNodeId === node.id ? '2px solid #146654' : '1px solid #ddd'}} onClick={() => setSelectedNodeId(node.id)}>
+            <input style={st.nodeInput} value={node.text} onChange={(e) => {
+                const edit = (list: MindNode[]): MindNode[] => list.map(n => n.id === node.id ? {...n, text: e.target.value} : {...n, children: edit(n.children)});
+                setData({...data, mindmap: { roots: edit(data.mindmap.roots) }});
+            }} />
+          </div>
+          <button style={st.branchBtn} onClick={() => addMindNode(node.id)}>+</button>
+          {node.children.length > 0 && <div style={st.childContainer}>{renderMindTree(node.children)}</div>}
+        </div>
+      ))}
+    </div>
+  );
+
+  // --- Views ---
   if (view === 'auth') {
     return (
       <div style={st.authWrapper}>
@@ -61,11 +83,15 @@ export default function App() {
         <h1 style={st.authTitle}>Daily Planner</h1>
         <div style={st.authCard}>
           <div style={st.authTabs}>
-            <button onClick={() => setView('home')} style={st.submitBtn}>Start Planning</button>
+            <button onClick={() => setAuthMode('signin')} style={{...st.tabBtn, background: authMode === 'signin' ? '#fff' : 'transparent'}}>Sign In</button>
+            <button onClick={() => setAuthMode('signup')} style={{...st.tabBtn, background: authMode === 'signup' ? '#fff' : 'transparent'}}>Sign Up</button>
           </div>
           <div style={st.inputGroup}>
-            <div style={st.field}>👤<input placeholder="Your name" value={userName} onChange={e => setUserName(e.target.value)} style={st.fieldInput}/></div>
+            {authMode === 'signup' && <div style={st.field}>👤<input placeholder="Your name" value={userName} onChange={e => setUserName(e.target.value)} style={st.fieldInput}/></div>}
+            <div style={st.field}>✉<input placeholder="Email address" style={st.fieldInput}/></div>
+            <div style={st.field}>🔒<input type="password" placeholder="Password" style={st.fieldInput}/></div>
           </div>
+          <button style={st.submitBtn} onClick={() => setView('home')}>{authMode === 'signup' ? 'Create Account' : 'Sign In'}</button>
         </div>
       </div>
     );
@@ -76,7 +102,7 @@ export default function App() {
       <div style={st.appWrapper}>
         <header style={st.homeHeader}>
           <div><p style={{color: '#888', margin: 0}}>Good evening,</p><h1 style={{margin: 0, fontSize: '32px'}}>{userName || "Broto"}</h1></div>
-          <button onClick={() => setView('auth')} style={st.logoutBtn}>📤</button>
+          <button onClick={() => setView('auth')} style={st.iconBtn}>📤</button>
         </header>
         <div style={st.menuCardGreen} onClick={() => setView('mindmap')}>
           <div style={st.menuIconBg}>🧠</div>
@@ -99,7 +125,6 @@ export default function App() {
       
       {view === 'planner' ? (
         <div>
-          {/* Schedule */}
           <div style={st.section}><h3 style={st.secTitle}>🕒 Schedule</h3>
             <div style={st.row}>
               <input type="time" value={data.planner.wake} onChange={e => updatePlanner({wake: e.target.value})} style={st.timeInput} />
@@ -107,24 +132,26 @@ export default function App() {
             </div>
           </div>
 
-          {/* Priorities */}
           <div style={st.section}><h3 style={st.secTitle}>⭐ Top 3 Priorities</h3>
             {data.planner.priorities.map((p: string, i: number) => (
               <div key={i} style={st.priRow}>
                 <span style={st.badge}>{i+1}</span>
-                <input style={st.input} value={p} placeholder="Add priority..." onChange={e => {const c=[...data.planner.priorities]; c[i]=e.target.value; updatePlanner({priorities:c});}} />
+                <input style={st.input} value={p} onChange={e => {const c=[...data.planner.priorities]; c[i]=e.target.value; updatePlanner({priorities:c});}} />
                 <button onClick={() => {const p=[...data.planner.priorities]; p[i]=""; updatePlanner({priorities:p});}} style={st.tick}>✓</button>
               </div>
             ))}
           </div>
 
-          {/* To-Do with Separator */}
           <div style={st.section}><h3 style={st.secTitle}>✔️ To-Do</h3>
             <div style={st.catRow}>
               <button onClick={() => setCurrentCat('home')} style={{...st.catBtn, background: currentCat==='home'?'#146654':'#eee', color: currentCat==='home'?'#fff':'#444'}}>Home</button>
               <button onClick={() => setCurrentCat('work')} style={{...st.catBtn, background: currentCat==='work'?'#146654':'#eee', color: currentCat==='work'?'#fff':'#444'}}>Work</button>
             </div>
-            <div style={st.inputWrap}><input style={st.input} placeholder={`Add ${currentCat} task...`} value={newTaskText} onChange={e=>setNewTaskText(e.target.value)} /><button style={st.addBtn} onClick={addTask}>+</button></div>
+            <div style={st.inputWrap}><input style={st.input} value={newTaskText} placeholder={`Add ${currentCat} task...`} onChange={e=>setNewTaskText(e.target.value)} /><button style={st.addBtn} onClick={() => {
+                if(!newTaskText) return;
+                updatePlanner({ tasks: [...data.planner.tasks, { id: Date.now().toString(), text: newTaskText, category: currentCat, done: false }] });
+                setNewTaskText("");
+            }}>+</button></div>
             
             {['home', 'work'].map((c, idx) => (
               <div key={c}>
@@ -141,8 +168,7 @@ export default function App() {
             ))}
           </div>
 
-          {/* Water */}
-          <div style={st.section}><h3 style={st.secTitle}>💧 Water Intake ({data.planner.water}/8)</h3>
+          <div style={st.section}><h3 style={st.secTitle}>💧 Water Intake</h3>
             <div style={{display:'flex', gap:'8px', flexWrap: 'wrap'}}>
               {[...Array(8)].map((_, i)=>(
                 <button key={i} onClick={() => handleWaterClick(i)} style={{...st.cup, background:i < data.planner.water ? '#146654' : '#eee'}} />
@@ -150,7 +176,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Food/Meals Section */}
           <div style={st.section}><h3 style={st.secTitle}>🍱 Meals</h3>
             <div style={st.mealGrid}>
               {data.planner.meals.map((meal: Meal) => (
@@ -166,7 +191,7 @@ export default function App() {
         <div style={st.mindCanvas}>
           <div style={st.treeWrapper}>{renderMindTree(data.mindmap.roots)}</div>
           <div style={st.mindFooter}>
-            <button style={st.mainAdd} onClick={() => addNode()}>+ Add Root</button>
+            <button style={st.mainAdd} onClick={() => addMindNode()}>+ Add Root</button>
             <button style={st.delBtn} onClick={() => {
               const del = (list: MindNode[]): MindNode[] => list.filter(n => n.id !== selectedNodeId).map(n => ({...n, children: del(n.children)}));
               setData({...data, mindmap: { roots: del(data.mindmap.roots) }}); setSelectedNodeId(null);
@@ -178,14 +203,29 @@ export default function App() {
   );
 }
 
-// Recursively render tree connections logic omitted for brevity, ensure you keep the previous renderMindTree function.
-
 const st: Record<string, React.CSSProperties> = {
+  authWrapper: { background: '#D1D5D1', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px', boxSizing: 'border-box', fontFamily: 'sans-serif' },
+  logoCircle: { width: '60px', height: '60px', background: '#146654', color: '#fff', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px', marginBottom: '10px' },
+  authTitle: { fontSize: '28px', marginBottom: '20px' },
+  authCard: { background: 'rgba(255,255,255,0.4)', borderRadius: '25px', padding: '15px', width: '100%', maxWidth: '350px' },
+  authTabs: { display: 'flex', background: '#e0e0e0', borderRadius: '12px', padding: '4px', marginBottom: '20px' },
+  tabBtn: { flex: 1, border: 'none', padding: '8px', borderRadius: '10px', fontWeight: 600, cursor: 'pointer' },
+  inputGroup: { display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' },
+  field: { display: 'flex', alignItems: 'center', background: 'white', padding: '10px', borderRadius: '10px', border: '1px solid #ccc' },
+  fieldInput: { border: 'none', outline: 'none', flex: 1, marginLeft: '8px' },
+  submitBtn: { width: '100%', padding: '14px', background: '#146654', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer' },
   appWrapper: { maxWidth: '450px', margin: '0 auto', background: '#f5f5f5', minHeight: '100vh', padding: '20px', boxSizing: 'border-box', fontFamily: 'sans-serif' },
+  homeHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '30px' },
+  iconBtn: { background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' },
+  menuCardGreen: { background: '#146654', padding: '20px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px', cursor: 'pointer', color: '#fff' },
+  menuCardWhite: { background: '#fff', padding: '20px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', border: '1px solid #ddd' },
+  menuIconBg: { width: '45px', height: '45px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' },
+  quoteBox: { marginTop: '40px', background: '#e0e0e0', padding: '15px', borderRadius: '15px', display: 'flex', alignItems: 'center', gap: '10px' },
+  backBtn: { background: 'none', border: 'none', color: '#146654', fontWeight: 700, marginBottom: '20px', cursor: 'pointer' },
   section: { background: '#fff', padding: '15px', borderRadius: '15px', marginBottom: '15px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' },
   secTitle: { color: '#146654', fontSize: '15px', marginBottom: '10px', fontWeight: 700 },
   priRow: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', background: '#f9f9f9', padding: '8px', borderRadius: '10px' },
-  badge: { background: '#146654', color: '#fff', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px' },
+  badge: { background: '#146654', color: '#fff', width: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px' },
   tick: { background: '#146654', border: 'none', color: '#fff', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer' },
   inputWrap: { display: 'flex', gap: '8px', background: '#eee', padding: '8px', borderRadius: '10px', marginBottom: '15px' },
   input: { flex: 1, border: 'none', background: 'none', outline: 'none' },
@@ -201,20 +241,15 @@ const st: Record<string, React.CSSProperties> = {
   timeInput: { flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #eee' },
   row: { display: 'flex', gap: '10px' },
   wrongBtn: { background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: '16px' },
-  backBtn: { background: 'none', border: 'none', color: '#146654', fontWeight: 700, marginBottom: '20px', cursor: 'pointer' },
-  authWrapper: { background: '#D1D5D1', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px', boxSizing: 'border-box' },
-  logoCircle: { width: '60px', height: '60px', background: '#146654', color: '#fff', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px', marginBottom: '20px' },
-  authTitle: { fontSize: '28px', marginBottom: '30px' },
-  authCard: { background: 'rgba(255,255,255,0.4)', borderRadius: '25px', padding: '15px', width: '100%', maxWidth: '350px' },
-  authTabs: { display: 'flex', background: '#e0e0e0', borderRadius: '12px', padding: '4px', marginBottom: '20px' },
-  inputGroup: { display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' },
-  field: { display: 'flex', alignItems: 'center', background: 'white', padding: '10px', borderRadius: '10px', border: '1px solid #ccc' },
-  fieldInput: { border: 'none', outline: 'none', flex: 1, marginLeft: '8px' },
-  submitBtn: { width: '100%', padding: '14px', background: '#146654', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer' },
-  homeHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '30px' },
-  logoutBtn: { background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' },
-  menuCardGreen: { background: '#146654', padding: '20px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px', cursor: 'pointer', color: '#fff' },
-  menuCardWhite: { background: '#fff', padding: '20px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', border: '1px solid #ddd' },
-  menuIconBg: { width: '45px', height: '45px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' },
-  quoteBox: { marginTop: '40px', background: '#e0e0e0', padding: '15px', borderRadius: '15px', display: 'flex', alignItems: 'center', gap: '10px' },
+  mindCanvas: { position: 'relative', overflowX: 'auto', minHeight: '70vh' },
+  treeWrapper: { display: 'flex', justifyContent: 'center', padding: '20px' },
+  treeRow: { display: 'flex', gap: '25px', alignItems: 'flex-start' },
+  nodeColumn: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  mindCard: { background: '#fff', padding: '12px', borderRadius: '12px', minWidth: '90px', textAlign: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' },
+  nodeInput: { border: 'none', textAlign: 'center', width: '80px', outline: 'none', fontWeight: 600 },
+  branchBtn: { marginTop: '8px', background: '#fff', border: '1px solid #146654', color: '#146654', width: '20px', height: '20px', borderRadius: '50%', cursor: 'pointer' },
+  childContainer: { marginTop: '25px', borderTop: '1px solid #ddd', paddingTop: '20px' },
+  mindFooter: { position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '10px', width: '90%', maxWidth: '400px' },
+  mainAdd: { flex: 4, background: '#146654', color: '#fff', border: 'none', padding: '15px', borderRadius: '15px', fontWeight: 700, cursor: 'pointer' },
+  delBtn: { flex: 1, background: '#eee', border: 'none', borderRadius: '15px', cursor: 'pointer' },
 };
