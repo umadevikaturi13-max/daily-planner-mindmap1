@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-// --- Types & Interfaces ---
+// --- Types ---
 type ViewState = 'auth' | 'home' | 'planner' | 'mindmap' | 'habits';
 type TaskCategory = 'home' | 'work';
 type MealKey = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
@@ -11,20 +11,12 @@ interface Meal { id: MealKey; label: string; done: boolean; }
 interface Habit { id: string; name: string; totalDays: number; completed: Record<number, boolean>; }
 
 export default function App() {
-  // --- Navigation & Auth State ---
+  // --- Persistent State ---
   const [view, setView] = useState<ViewState>(() => localStorage.getItem('isLoggedIn') === 'true' ? 'home' : 'auth');
   const [userName, setUserName] = useState(() => localStorage.getItem('userName') || "");
-
-  // --- Input States ---
-  const [newTaskText, setNewTaskText] = useState("");
-  const [currentCat, setCurrentCat] = useState<TaskCategory>('home');
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [hName, setHName] = useState("");
-  const [hDays, setHDays] = useState(21);
-
-  // --- Main Data State ---
+  
   const [data, setData] = useState(() => {
-    const saved = localStorage.getItem('master_daily_app_v14');
+    const saved = localStorage.getItem('daily_master_v15');
     return saved ? JSON.parse(saved) : {
       planner: { 
         wake: '07:00', sleep: '23:00', priorities: ['', '', ''], tasks: [] as Task[], water: 0, 
@@ -40,9 +32,14 @@ export default function App() {
     };
   });
 
-  // --- Persistence ---
+  const [newTaskText, setNewTaskText] = useState("");
+  const [currentCat, setCurrentCat] = useState<TaskCategory>('home');
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [hName, setHName] = useState("");
+  const [hDays, setHDays] = useState(21);
+
   useEffect(() => {
-    localStorage.setItem('master_daily_app_v14', JSON.stringify(data));
+    localStorage.setItem('daily_master_v15', JSON.stringify(data));
     localStorage.setItem('userName', userName);
     localStorage.setItem('isLoggedIn', view !== 'auth' ? 'true' : 'false');
   }, [data, userName, view]);
@@ -50,23 +47,16 @@ export default function App() {
   // --- Handlers ---
   const updatePlanner = (updates: any) => setData((prev: any) => ({ ...prev, planner: { ...prev.planner, ...updates } }));
 
+  // Mindmap Logic
   const addMindNode = (parentId: string | null = null) => {
     const newNode = { id: Date.now().toString(), text: 'New idea', children: [] };
-    if (!parentId) {
-      setData((prev: any) => ({ ...prev, mindmap: { roots: [...prev.mindmap.roots, newNode] } }));
-    } else {
+    if (!parentId) setData((prev: any) => ({ ...prev, mindmap: { roots: [...prev.mindmap.roots, newNode] } }));
+    else {
       const addToTree = (nodes: MindNode[]): MindNode[] => nodes.map(n => 
         n.id === parentId ? { ...n, children: [...n.children, newNode] } : { ...n, children: addToTree(n.children) }
       );
       setData((prev: any) => ({ ...prev, mindmap: { roots: addToTree(prev.mindmap.roots) } }));
     }
-  };
-
-  const deleteMindNode = () => {
-    if (!selectedNodeId) return;
-    const delFromTree = (nodes: MindNode[]): MindNode[] => nodes.filter(n => n.id !== selectedNodeId).map(n => ({ ...n, children: delFromTree(n.children) }));
-    setData((prev: any) => ({ ...prev, mindmap: { roots: delFromTree(prev.mindmap.roots) } }));
-    setSelectedNodeId(null);
   };
 
   const renderMindTree = (nodes: MindNode[]) => (
@@ -79,7 +69,7 @@ export default function App() {
                 setData((prev: any) => ({...prev, mindmap: { roots: edit(prev.mindmap.roots) }}));
             }} />
           </div>
-          <button style={st.branchBtn} onClick={(e) => { e.stopPropagation(); addMindNode(node.id); }}>+</button>
+          <button style={st.branchBtn} onClick={() => addMindNode(node.id)}>+</button>
           {node.children.length > 0 && <div style={st.childContainer}>{renderMindTree(node.children)}</div>}
         </div>
       ))}
@@ -98,7 +88,7 @@ export default function App() {
     </div>
   );
 
-  // --- Home View (Matches Image) ---
+  // --- Home View ---
   if (view === 'home') return (
     <div style={st.appWrapper}>
       <header style={st.homeHeader}>
@@ -117,13 +107,13 @@ export default function App() {
 
       {view === 'planner' && (
         <div>
-          {/* Top 3 Section */}
+          {/* Top 3 Priorities Section */}
           <div style={st.section}><h3 style={st.secTitle}>⭐ Top 3 Priorities</h3>
             {data.planner.priorities.map((p: string, i: number) => (
               <div key={i} style={st.priRow}><span style={st.badge}>{i+1}</span><input style={st.input} value={p} onChange={e => {const c=[...data.planner.priorities]; c[i]=e.target.value; updatePlanner({priorities:c});}} /><button onClick={() => {const c=[...data.planner.priorities]; c[i]=""; updatePlanner({priorities:c});}} style={st.tick}>✓</button></div>
             ))}
           </div>
-          {/* To-Do Section */}
+
           <div style={st.section}><h3 style={st.secTitle}>✔️ To-Do</h3>
             <div style={st.catRow}><button onClick={()=>setCurrentCat('home')} style={{...st.catBtn, background: currentCat==='home'?'#146654':'#eee', color: currentCat==='home'?'#fff':'#444'}}>Home</button><button onClick={()=>setCurrentCat('work')} style={{...st.catBtn, background: currentCat==='work'?'#146654':'#eee', color: currentCat==='work'?'#fff':'#444'}}>Work</button></div>
             <div style={st.inputWrap}><input style={st.input} value={newTaskText} placeholder={`Add ${currentCat} task...`} onChange={e=>setNewTaskText(e.target.value)} /><button style={st.addBtn} onClick={() => { if(!newTaskText) return; updatePlanner({tasks:[...data.planner.tasks, {id:Date.now().toString(), text:newTaskText, category:currentCat, done:false}]}); setNewTaskText(""); }}>+</button></div>
@@ -137,6 +127,7 @@ export default function App() {
               </div>
             ))}
           </div>
+
           {/* Food Section */}
           <div style={st.section}><h3 style={st.secTitle}>🍱 Meals</h3>
             <div style={st.mealGrid}>{data.planner.meals.map((m: any) => (
@@ -151,17 +142,40 @@ export default function App() {
           <div style={st.treeWrapper}>{renderMindTree(data.mindmap.roots)}</div>
           <div style={st.mindFooter}>
             <button style={st.mainAdd} onClick={() => addMindNode()}>+ Add Root</button>
-            <button style={st.delBtn} onClick={deleteMindNode}>🗑️</button>
+            <button style={st.delBtn} onClick={() => {
+                const del = (list: MindNode[]): MindNode[] => list.filter(n => n.id !== selectedNodeId).map(n => ({...n, children: del(n.children)}));
+                setData((prev:any) => ({...prev, mindmap: { roots: del(prev.mindmap.roots) }})); setSelectedNodeId(null);
+            }}>🗑️</button>
           </div>
         </div>
       )}
 
       {view === 'habits' && (
         <div>
-          {/* Habit Tracker Section logic as per previous complete code */}
           <div style={st.section}><h3 style={st.secTitle}>✨ Habit Tracker</h3>
-             {/* [Habit code remains same] */}
+            <div style={st.inputWrap}>
+              <input style={st.input} placeholder="Habit name..." value={hName} onChange={e=>setHName(e.target.value)} />
+              <input type="number" style={{width:'40px', border:'none', background:'none'}} value={hDays} onChange={e=>setHDays(Number(e.target.value))} />
+              <button style={st.addBtn} onClick={() => { if(!hName) return; setData({...data, habits:[...data.habits, {id:Date.now().toString(), name:hName, totalDays:hDays, completed:{}}]}); setHName(""); }}>+</button>
+            </div>
           </div>
+          {data.habits.map((h: Habit) => (
+            <div key={h.id} style={st.habitRowItem}>
+              <div style={st.habitNameFixed}>
+                <div style={{fontWeight: 700}}>{h.name}</div>
+                <div style={{fontSize:'11px', color:'#146654'}}>{Object.values(h.completed).filter(v=>v).length}/{h.totalDays}</div>
+                <button onClick={() => setData({...data, habits: data.habits.filter(x=>x.id!==h.id)})} style={st.delHabit}>Delete</button>
+              </div>
+              <div style={st.habitScrollGrid}>
+                {[...Array(h.totalDays)].map((_, i) => (
+                  <button key={i} onClick={() => {
+                      const newH = data.habits.map(x => x.id === h.id ? {...x, completed: {...x.completed, [i]: !x.completed[i]}} : x);
+                      setData({...data, habits: newH});
+                    }} style={{...st.dayCircle, color: h.completed[i] ? '#146654' : '#ccc'}}>{h.completed[i] ? '✓' : '✕'}</button>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -175,7 +189,7 @@ const st: Record<string, React.CSSProperties> = {
   authTitle: { fontSize: '28px', marginBottom: '30px' },
   authCard: { background: 'rgba(255,255,255,0.4)', borderRadius: '25px', padding: '15px', width: '100%', maxWidth: '350px' },
   submitBtn: { width: '100%', padding: '14px', background: '#146654', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer' },
-  fieldInput: { border: 'none', outline: 'none', flex: 1, marginLeft: '8px', padding: '10px', borderRadius: '10px', width: '100%', boxSizing: 'border-box', marginBottom: '15px' },
+  fieldInput: { border: 'none', outline: 'none', flex: 1, padding: '10px', borderRadius: '10px', width: '100%', boxSizing: 'border-box', marginBottom: '15px' },
   homeHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '30px' },
   logoutBtn: { background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' },
   menuCardGreen: { background: '#146654', padding: '20px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px', cursor: 'pointer', color: '#fff' },
@@ -198,6 +212,11 @@ const st: Record<string, React.CSSProperties> = {
   wrongBtn: { background: 'none', border: 'none', color: '#ccc', cursor: 'pointer' },
   mealGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' },
   mealBtn: { padding: '15px', borderRadius: '12px', cursor: 'pointer', fontWeight: 600 },
+  habitRowItem: { display: 'flex', background: '#fff', borderRadius: '15px', marginBottom: '10px', overflow: 'hidden' },
+  habitNameFixed: { position: 'sticky', left: 0, background: '#fff', padding: '15px', minWidth: '100px', borderRight: '1px solid #eee', zIndex: 2 },
+  habitScrollGrid: { display: 'flex', overflowX: 'auto', padding: '10px', gap: '10px' },
+  dayCircle: { minWidth: '35px', height: '35px', borderRadius: '50%', border: '1px solid #eee', background: 'none', cursor: 'pointer' },
+  delHabit: { border: 'none', background: 'none', color: '#ff4d4d', fontSize: '10px', padding: 0, marginTop: '5px' },
   mindCanvas: { position: 'relative', overflowX: 'auto', minHeight: '70vh' },
   treeWrapper: { display: 'flex', justifyContent: 'center', padding: '20px' },
   treeRow: { display: 'flex', gap: '25px', alignItems: 'flex-start' },
