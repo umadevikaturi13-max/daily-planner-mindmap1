@@ -116,8 +116,11 @@ export default function App() {
   if (view === 'home') return (
     <div style={st.appWrapper}>
       <header style={st.homeHeader}>
-        <div><p style={{color: '#888', margin: 0}}>{getGreeting()}</p> 
-        <button onClick={() => setView('auth')} style={st.logoutBtn}>📤</button>
+      <div>
+        <p style={{color: '#888', margin: 0}}>{getGreeting()}</p>
+        <h1 style={{margin: 0, fontSize: '32px'}}>{userName || "Broto"}</h1>
+       </div>
+       <button onClick={() => setView('auth')} style={st.logoutBtn}>📤</button>
       </header>
       <div style={st.menuCardGreen} onClick={() => setView('habits')}><div style={st.menuIconBg}>✨</div><div style={{flex: 1}}><h4 style={{margin: 0, color: '#fff'}}>Habit Tracker</h4><p style={{margin: 0, fontSize: '12px', color: '#fff', opacity: 0.8}}>Consistent Progress</p></div><span>→</span></div>
       <div style={st.menuCardWhite} onClick={() => setView('planner')}><div style={{...st.menuIconBg, background: '#e8f2f0', color: '#146654'}}>📅</div><div style={{flex: 1}}><h4 style={{margin: 0}}>Daily Planner</h4><p style={{margin: 0, fontSize: '12px', color: '#888'}}>Tasks & Schedule</p></div><span>→</span></div>
