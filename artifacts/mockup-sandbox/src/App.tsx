@@ -36,7 +36,13 @@ export default function App() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hName, setHName] = useState("");
   const [hDays, setHDays] = useState(21);
-
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning,";
+    if (hour < 17) return "Good afternoon,";
+    return "Good evening,";
+  };
+  
   const [data, setData] = useState(() => {
     const saved = localStorage.getItem('master_daily_app_v27');
     return saved ? JSON.parse(saved) : INITIAL_DATA;
@@ -109,7 +115,7 @@ export default function App() {
   if (view === 'home') return (
     <div style={st.appWrapper}>
       <header style={st.homeHeader}>
-        <div><p style={{color: '#888', margin: 0}}>Good evening,</p><h1 style={{margin: 0, fontSize: '32px'}}>{userName || "Broto"}</h1></div>
+        <div><p style={{color: '#888', margin: 0}}>{getGreeting()}</p> 
         <button onClick={() => setView('auth')} style={st.logoutBtn}>📤</button>
       </header>
       <div style={st.menuCardGreen} onClick={() => setView('habits')}><div style={st.menuIconBg}>✨</div><div style={{flex: 1}}><h4 style={{margin: 0, color: '#fff'}}>Habit Tracker</h4><p style={{margin: 0, fontSize: '12px', color: '#fff', opacity: 0.8}}>Consistent Progress</p></div><span>→</span></div>
