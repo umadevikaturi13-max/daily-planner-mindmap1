@@ -171,7 +171,12 @@ export default function App() {
     {[1, 2, 3, 4, 5, 6, 7, 8].map((glass) => (
       <button 
         key={glass}
-        onClick={() => updatePlanner({ water: glass })}
+        onClick={() => {
+  const currentWater = data.planner.water || 0;
+  // If clicking the same glass that is already active, decrease water by 1
+  const newValue = currentWater === glass ? glass - 1 : glass;
+  updatePlanner({ water: newValue });
+        }}
         style={{
           width: '40px',
           height: '40px',
