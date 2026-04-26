@@ -20,6 +20,7 @@ const INITIAL_DATA = {
       { id: 'dinner', label: 'Dinner', done: false },
       { id: 'snacks', label: 'Snacks', done: false }
     ] as Meal[],
+    water: 0,
     notes: '' 
   },
   mindmap: { roots: [] as MindNode[] },
@@ -162,6 +163,30 @@ export default function App() {
           <div style={st.section}><h3 style={st.secTitle}>🍱 Meals</h3>
             <div style={st.mealGrid}>{data.planner.meals.map((m: any) => (<button key={m.id} onClick={() => updatePlanner({meals: data.planner.meals.map((x:any)=>x.id===m.id?{...x,done:!x.done}:x)})} style={{...st.mealBtn, background: m.done?'#E3F2FD':'#fff', border: m.done?'1px solid #146654':'1px solid #ddd'}}>{m.label} {m.done?'✅':''}</button>))}</div>
           </div>
+
+          {/* Water Intake Section */}
+<div style={st.section}>
+  <h3 style={st.secTitle}>💧 Water Intake</h3>
+  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '10px' }}>
+    {[1, 2, 3, 4, 5, 6, 7, 8].map((glass) => (
+      <button 
+        key={glass}
+        onClick={() => updatePlanner({ water: glass })}
+        style={{
+          width: '40px',
+          height: '40px',
+          borderRadius: '50%',
+          border: 'none',
+          backgroundColor: (data.planner.water || 0) >= glass ? '#3498db' : '#ecf0f1',
+          fontSize: '18px',
+          cursor: 'pointer'
+        }}
+      >
+        { (data.planner.water || 0) >= glass ? '💧' : '○' }
+      </button>
+    ))}
+  </div>
+</div>
           <div style={st.section}><h3 style={st.secTitle}>📝 Notes</h3>
             <textarea style={st.notesArea} value={data.planner.notes} onChange={e => updatePlanner({notes: e.target.value})} placeholder="Reflections, gratitude, or ideas..." />
           </div>
