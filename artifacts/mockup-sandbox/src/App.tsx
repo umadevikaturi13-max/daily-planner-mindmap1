@@ -228,7 +228,7 @@ const st: Record<string, React.CSSProperties> = {
   delHabit: { border: 'none', background: 'none', color: '#ff4d4d', fontSize: '10px', padding: 0, marginTop: '5px', textAlign: 'left', cursor: 'pointer' },
  mindCanvas: {
   position: 'relative',
-  width: '50px',       // Creates a huge horizontal space
+  width: '500px',       // Creates a huge horizontal space
   height: '100px',      // Creates a huge vertical space
   padding: '100px',
   display: 'flex',
