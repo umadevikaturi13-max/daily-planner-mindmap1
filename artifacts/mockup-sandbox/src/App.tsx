@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
+ 
 // --- 1. TYPES & INTERFACES ---
 type ViewState = 'auth' | 'home' | 'planner' | 'mindmap' | 'habits';
 type TaskCategory = 'home' | 'work';
