@@ -186,6 +186,17 @@ export default function App() {
           <div style={st.section}><h3 style={st.secTitle}>🍱 Meals</h3>
             <div style={st.mealGrid}>{data.planner.meals.map((m: any) => (<button key={m.id} onClick={() => updatePlanner({ meals: data.planner.meals.map((x:any) => x.id === m.id ? {...m, done: !m.done} : x) })} style={{...st.mealBtn, background: m.done?'#E3F2FD':'#fff', border: m.done?'1px solid #146654':'1px solid #ddd'}}>{m.label} {m.done?'✅':''}</button>))}</div>
           </div>
+          
+          {/* --- Notes Section --- */}
+  <div style={st.section}>
+    <h3 style={st.secTitle}>📝 Notes</h3>
+    <textarea 
+      style={st.notesArea} 
+      value={data.planner.notes} 
+      onChange={e => updatePlanner({notes: e.target.value})} 
+      placeholder="Reflections, gratitude, or ideas..." 
+    />
+  </div>
         </div>
       ) : view === 'habits' ? (
         <div>
@@ -264,5 +275,6 @@ const st: Record<string, React.CSSProperties> = {
   mindFooter: { position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '10px', width: '90%', maxWidth: '400px' },
   mainAdd: { flex: 4, background: '#146654', color: '#fff', border: 'none', padding: '15px', borderRadius: '15px', fontWeight: 700, cursor: 'pointer' },
   delBtn: { flex: 1, background: '#eee', border: 'none', borderRadius: '15px', cursor: 'pointer' },
-  row: { display: 'flex', gap: '10px' }
+  row: { display: 'flex', gap: '10px' },
+ notesArea: { width: '100%', minHeight: '120px', padding: '12px', borderRadius: '12px', border: '1px solid #eee', background: '#f9f9f9',outline: 'none', resize: 'none', boxSizing: 'border-box',fontFamily: 'inherit',fontSize: '14px',color: '#333'}
 };
