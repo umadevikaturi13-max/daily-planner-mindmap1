@@ -151,7 +151,7 @@ export default function App() {
             <div style={st.catRow}><button onClick={()=>setCurrentCat('home')} style={{...st.catBtn, background: currentCat==='home'?'#146654':'#eee', color: currentCat==='home'?'#fff':'#444'}}>Home</button><button onClick={()=>setCurrentCat('work')} style={{...st.catBtn, background: currentCat==='work'?'#146654':'#eee', color: currentCat==='work'?'#fff':'#444'}}>Work</button></div>
             <div style={st.inputWrap}><input style={st.input} placeholder="Add task..." value={newTaskText} onChange={e=>setNewTaskText(e.target.value)} /><button style={st.addBtn} onClick={handleAddTask}>+</button></div>
             {['home', 'work'].map((c, idx) => (
-              <div key={idx}>
+              <div key={idx}> 
                 <div style={st.catLabel}>{c.toUpperCase()}</div>
                 {data.planner.tasks.filter((t:any)=>t.category===c).map((t:any)=>(
                   <div key={t.id} style={st.taskRow}><input type="checkbox" checked={t.done} onChange={()=>updatePlanner({tasks:data.planner.tasks.map((x:any)=>x.id===t.id?{...x,done:!x.done}:x)})} /><span style={{flex:1, textDecoration: t.done?'line-through':'none'}}>{t.text}</span><button onClick={()=>updatePlanner({tasks:data.planner.tasks.filter((x:any)=>x.id!==t.id)})} style={st.wrongBtn}>✕</button></div>
