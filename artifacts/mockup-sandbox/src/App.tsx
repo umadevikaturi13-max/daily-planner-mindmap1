@@ -195,7 +195,8 @@ const st: Record<string, React.CSSProperties> = {
   backgroundColor: '#f5f5f5', // This extends the grey to the whole screen
   overflowX: 'auto',      // CRITICAL: This allows horizontal scrolling
   margin: 0,
-  padding: 0,
+  padding: '20px',
+  boxSizing: 'border-box',
   fontFamily: 'sans-serif'
 },
   authWrapper: { background: '#D1D5D1', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px', boxSizing: 'border-box', justifyContent: 'center' },
